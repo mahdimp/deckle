@@ -8,13 +8,30 @@ import { newId } from '../utils/id';
 
 @Injectable({ providedIn: 'root' })
 export class DeckService {
+  // Dexie's liveQuery dependency tracking doesn't reliably notify on writes for
+  // Collection queries (where/orderBy) piped into toArray/sortBy — fetch the
+  // table plainly and filter/sort in JS instead.
   readonly decks: Signal<Deck[] | undefined> = toSignal(
-    from(liveQuery(() => db.decks.orderBy('createdAt').toArray())),
+    from(
+      liveQuery(() =>
+        db.decks
+          .toArray()
+          .then((list) => list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())),
+      ),
+    ),
   );
 
   /** Observable form — use with toObservable(idSignal).pipe(switchMap(...)) when the id can change without recreating the component. */
   decksForProject$(projectId: string): Observable<Deck[]> {
-    return from(liveQuery(() => db.decks.where('projectId').equals(projectId).sortBy('createdAt')));
+    return from(
+      liveQuery(() =>
+        db.decks.toArray().then((list) =>
+          list
+            .filter((d) => d.projectId === projectId)
+            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+        ),
+      ),
+    );
   }
 
   deck$(id: string): Observable<Deck | undefined> {

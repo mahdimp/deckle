@@ -11,9 +11,21 @@ import { newId } from '../utils/id';
 export class CardService {
   constructor(private readonly fsrs: FsrsService) {}
 
+  // Dexie's liveQuery dependency tracking doesn't reliably notify on writes for
+  // Collection queries (where) piped into toArray/sortBy — fetch the table
+  // plainly and filter/sort in JS instead.
+
   /** Observable form — use with toObservable(idSignal).pipe(switchMap(...)) when the id can change without recreating the component. */
   cardsForDeck$(deckId: string): Observable<Card[]> {
-    return from(liveQuery(() => db.cards.where('deckId').equals(deckId).sortBy('createdAt')));
+    return from(
+      liveQuery(() =>
+        db.cards.toArray().then((list) =>
+          list
+            .filter((c) => c.deckId === deckId)
+            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+        ),
+      ),
+    );
   }
 
   card$(id: string): Observable<Card | undefined> {
@@ -21,7 +33,15 @@ export class CardService {
   }
 
   cardsForNote$(noteId: string): Observable<Card[]> {
-    return from(liveQuery(() => db.cards.where('noteId').equals(noteId).sortBy('clozeIndex')));
+    return from(
+      liveQuery(() =>
+        db.cards.toArray().then((list) =>
+          list
+            .filter((c) => c.noteId === noteId)
+            .sort((a, b) => (a.clozeIndex ?? 0) - (b.clozeIndex ?? 0)),
+        ),
+      ),
+    );
   }
 
   async createBasic(deckId: string, front: string, back: string): Promise<Card> {

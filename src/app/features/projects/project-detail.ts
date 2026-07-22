@@ -63,7 +63,7 @@ import { ProjectService } from '../../core/services/project.service';
       } @else {
         <div class="space-y-2">
           @for (deck of decks()!; track deck.id) {
-            <div hlmCard class="flex items-center gap-2 p-3">
+            <div hlmCard class="flex flex-row items-center gap-2 p-3">
               @if (renamingId() === deck.id) {
                 <input
                   hlmInput
@@ -119,13 +119,17 @@ export class ProjectDetail {
   protected readonly renamingId = signal<string | null>(null);
   protected readonly renameValue = signal('');
 
+  // Table.toArray() + JS filter, not Collection.where().toArray() — see the note
+  // in review.service.ts about Dexie's liveQuery dependency tracking.
   protected readonly dueByDeck = toSignal(
     from(
       liveQuery(async () => {
-        const now = new Date();
-        const cards = await db.cards.where('due').belowOrEqual(now).toArray();
+        const now = Date.now();
+        const cards = await db.cards.toArray();
         const counts: Record<string, number> = {};
-        for (const c of cards) counts[c.deckId] = (counts[c.deckId] ?? 0) + 1;
+        for (const c of cards) {
+          if (c.due.getTime() <= now) counts[c.deckId] = (counts[c.deckId] ?? 0) + 1;
+        }
         return counts;
       }),
     ),

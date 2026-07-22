@@ -21,7 +21,10 @@ interface StatsSnapshot {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function computeStats(): Promise<StatsSnapshot> {
-  const [logs, dueCards] = await Promise.all([db.reviewLogs.toArray(), db.cards.toArray()]);
+  // Sequential awaits — Dexie's liveQuery dependency tracking drops subscriptions
+  // for tables read inside a Promise.all.
+  const logs = await db.reviewLogs.toArray();
+  const dueCards = await db.cards.toArray();
 
   const totalReviews = logs.length;
   const nonAgain = logs.filter((l) => l.rating !== Rating.Again).length;

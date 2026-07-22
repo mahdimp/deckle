@@ -25,17 +25,21 @@ export interface DueProjectSummary {
 export class ReviewService {
   constructor(private readonly fsrs: FsrsService) {}
 
+  // Dexie's liveQuery dependency tracking doesn't reliably notify on writes for
+  // Collection queries (where/orderBy) piped into toArray/sortBy/count — every
+  // query below fetches its table plainly via Table.toArray() and does the
+  // filtering/grouping in JS instead.
+
   /** Due-card counts grouped by project (then deck), for the dashboard. Sorted busiest project first. */
   readonly dueOverview: Signal<DueProjectSummary[] | undefined> = toSignal(
     from(
       liveQuery(async () => {
-        const now = new Date();
-        const [dueCards, decks, projects] = await Promise.all([
-          db.cards.where('due').belowOrEqual(now).toArray(),
-          db.decks.toArray(),
-          db.projects.toArray(),
-        ]);
+        const now = Date.now();
+        const allCards = await db.cards.toArray();
+        const decks = await db.decks.toArray();
+        const projects = await db.projects.toArray();
 
+        const dueCards = allCards.filter((c) => c.due.getTime() <= now);
         const deckById = new Map(decks.map((d) => [d.id, d]));
         const projectById = new Map(projects.map((p) => [p.id, p]));
 
@@ -66,7 +70,11 @@ export class ReviewService {
   );
 
   readonly totalDue: Signal<number> = toSignal(
-    from(liveQuery(() => db.cards.where('due').belowOrEqual(new Date()).count())),
+    from(
+      liveQuery(() =>
+        db.cards.toArray().then((cards) => cards.filter((c) => c.due.getTime() <= Date.now()).length),
+      ),
+    ),
     { initialValue: 0 },
   );
 

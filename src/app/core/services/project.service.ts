@@ -8,8 +8,17 @@ import { newId } from '../utils/id';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
+  // Dexie's liveQuery dependency tracking doesn't reliably notify on writes for
+  // Collection queries (where/orderBy) piped into toArray/sortBy — fetch the
+  // table plainly and sort in JS instead.
   readonly projects: Signal<Project[] | undefined> = toSignal(
-    from(liveQuery(() => db.projects.orderBy('createdAt').toArray())),
+    from(
+      liveQuery(() =>
+        db.projects
+          .toArray()
+          .then((list) => list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())),
+      ),
+    ),
   );
 
   async create(name: string): Promise<Project> {
