@@ -1,7 +1,7 @@
 import { Injectable, Signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { liveQuery } from 'dexie';
-import { from } from 'rxjs';
+import { from, type Observable } from 'rxjs';
 import { db } from '../data/db';
 import type { Deck } from '../models/deck.model';
 import { newId } from '../utils/id';
@@ -12,14 +12,13 @@ export class DeckService {
     from(liveQuery(() => db.decks.orderBy('createdAt').toArray())),
   );
 
-  decksForProject(projectId: string): Signal<Deck[] | undefined> {
-    return toSignal(
-      from(liveQuery(() => db.decks.where('projectId').equals(projectId).sortBy('createdAt'))),
-    );
+  /** Observable form — use with toObservable(idSignal).pipe(switchMap(...)) when the id can change without recreating the component. */
+  decksForProject$(projectId: string): Observable<Deck[]> {
+    return from(liveQuery(() => db.decks.where('projectId').equals(projectId).sortBy('createdAt')));
   }
 
-  deck(id: string): Signal<Deck | undefined> {
-    return toSignal(from(liveQuery(() => db.decks.get(id))));
+  deck$(id: string): Observable<Deck | undefined> {
+    return from(liveQuery(() => db.decks.get(id)));
   }
 
   async create(projectId: string, name: string): Promise<Deck> {

@@ -1,7 +1,6 @@
-import { Injectable, Signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Injectable } from '@angular/core';
 import { liveQuery } from 'dexie';
-import { from } from 'rxjs';
+import { from, type Observable } from 'rxjs';
 import { db } from '../data/db';
 import type { Card } from '../models/card.model';
 import { FsrsService } from './fsrs.service';
@@ -12,20 +11,17 @@ import { newId } from '../utils/id';
 export class CardService {
   constructor(private readonly fsrs: FsrsService) {}
 
-  cardsForDeck(deckId: string): Signal<Card[] | undefined> {
-    return toSignal(
-      from(liveQuery(() => db.cards.where('deckId').equals(deckId).sortBy('createdAt'))),
-    );
+  /** Observable form — use with toObservable(idSignal).pipe(switchMap(...)) when the id can change without recreating the component. */
+  cardsForDeck$(deckId: string): Observable<Card[]> {
+    return from(liveQuery(() => db.cards.where('deckId').equals(deckId).sortBy('createdAt')));
   }
 
-  card(id: string): Signal<Card | undefined> {
-    return toSignal(from(liveQuery(() => db.cards.get(id))));
+  card$(id: string): Observable<Card | undefined> {
+    return from(liveQuery(() => db.cards.get(id)));
   }
 
-  cardsForNote(noteId: string): Signal<Card[] | undefined> {
-    return toSignal(
-      from(liveQuery(() => db.cards.where('noteId').equals(noteId).sortBy('clozeIndex'))),
-    );
+  cardsForNote$(noteId: string): Observable<Card[]> {
+    return from(liveQuery(() => db.cards.where('noteId').equals(noteId).sortBy('clozeIndex')));
   }
 
   async createBasic(deckId: string, front: string, back: string): Promise<Card> {
