@@ -14,6 +14,9 @@ export class LockService {
     return !this.sessionUnlocked();
   });
 
+  /** True whenever a passphrase gate is configured, regardless of current session state. */
+  readonly isEnabled = computed(() => this.settingsService.settings()?.lockEnabled ?? false);
+
   async setPassphrase(passphrase: string): Promise<void> {
     const hash = await this.hashPassphrase(passphrase);
     await this.settingsService.update({ passphraseHash: hash, lockEnabled: true });
