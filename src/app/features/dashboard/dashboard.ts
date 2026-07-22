@@ -59,7 +59,7 @@ import { ReviewService } from '../../core/services/review.service';
                 [routerLink]="['/review']"
                 [queryParams]="{ projectId: project.projectId }"
                 hlmCard
-                class="flex items-center justify-between p-4 hover:bg-muted"
+                class="flex flex-row items-center justify-between p-4 hover:bg-muted"
               >
                 <span class="font-medium">{{ project.projectName }}</span>
                 <span hlmBadge>{{ project.dueCount }}</span>

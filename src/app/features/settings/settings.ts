@@ -65,7 +65,7 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
         </div>
 
         @if (notificationPermission() !== 'granted') {
-          <button hlmBtn variant="outline" size="sm" (click)="requestNotifications()">
+          <button hlmBtn variant="outline" size="sm" class="self-start" (click)="requestNotifications()">
             Enable browser notifications
           </button>
         } @else {

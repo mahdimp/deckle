@@ -33,7 +33,9 @@ const SWIPE_THRESHOLD_PX = 60;
         <div hlmEmpty>
           <div hlmEmptyHeader>
             <div hlmEmptyTitle>Session complete 🎉</div>
-            <div hlmEmptyDescription>You reviewed {{ queue().length }} card(s).</div>
+            <div hlmEmptyDescription>
+              You reviewed {{ queue().length }} card{{ queue().length === 1 ? '' : 's' }}.
+            </div>
           </div>
           <a hlmBtn routerLink="/">Back to dashboard</a>
         </div>

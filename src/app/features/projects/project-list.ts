@@ -39,7 +39,7 @@ import { ProjectService } from '../../core/services/project.service';
       } @else {
         <div class="space-y-2">
           @for (project of projects()!; track project.id) {
-            <div hlmCard class="flex items-center gap-2 p-3">
+            <div hlmCard class="flex flex-row items-center gap-2 p-3">
               @if (renamingId() === project.id) {
                 <input
                   hlmInput

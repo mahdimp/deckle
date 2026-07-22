@@ -19,7 +19,7 @@ import { DeckService } from '../../core/services/deck.service';
           <a
             [routerLink]="['/projects', projectId()]"
             class="text-sm text-muted-foreground hover:underline"
-            >&larr; {{ deck()?.name ? '' : 'Project' }}</a
+            >&larr; Project</a
           >
           <h1 class="text-2xl font-semibold">{{ deck()?.name ?? '…' }}</h1>
         </div>
@@ -45,7 +45,7 @@ import { DeckService } from '../../core/services/deck.service';
       } @else {
         <div class="space-y-2">
           @for (note of notes()!; track note.noteId) {
-            <a [routerLink]="['notes', note.noteId]" hlmCard class="flex items-center gap-2 p-3 hover:bg-muted">
+            <a [routerLink]="['notes', note.noteId]" hlmCard class="flex flex-row items-center gap-2 p-3 hover:bg-muted">
               <span class="flex-1 truncate text-sm">{{ note.preview }}</span>
               @if (note.dueCount > 0) {
                 <span hlmBadge>{{ note.dueCount }}</span>
