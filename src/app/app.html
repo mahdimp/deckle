@@ -1,7 +1,15 @@
 @if (lockService.locked()) {
-  <app-lock-screen />
+  <!-- Deferred so the passphrase-lock code (and its form dependencies) is never
+       downloaded by the vast majority of users who never enable it. Nested inside
+       the @if so re-locking after unlock resolves instantly from the module cache
+       instead of re-fetching. -->
+  @defer (on immediate) {
+    <app-lock-screen />
+  }
 } @else {
   <app-shell />
 }
 
-<hlm-toaster />
+@defer (on idle) {
+  <hlm-toaster />
+}
