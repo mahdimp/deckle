@@ -3,6 +3,10 @@
 @import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css';
 
+/* Self-hosted (not Google's CDN) so it's precached by the service worker and
+   works fully offline — Lexend is a reading-proficiency-optimized typeface,
+   a deliberate fit for a spaced-repetition study app. */
+@import '@fontsource-variable/lexend';
 @import '@spartan-ng/brain/hlm-tailwind-preset.css';
 @plugin '@tailwindcss/typography';
 /* You can add global styles to this file, and also import other style files */
@@ -16,8 +20,9 @@
   color-scheme: light;
 
   --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
-    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    'Lexend Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
 
   --radius: 0.625rem;
   --background: oklch(1 0 0);
