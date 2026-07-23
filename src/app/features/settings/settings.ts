@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -8,6 +8,7 @@ import { BackupService } from '../../core/services/backup.service';
 import { LockService } from '../../core/services/lock.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { ConfirmDialog } from '../../shared/components/confirm-dialog';
 import { ThemeToggle } from '../../shared/components/theme-toggle';
 
 @Component({
@@ -18,6 +19,7 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
     HlmInput,
     HlmLabel,
     ThemeToggle,
+    ConfirmDialog,
     ...HlmCardImports,
   ],
   template: `
@@ -94,8 +96,15 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
         } @else {
           <div class="flex items-center justify-between">
             <p class="text-sm">Deckle is locked with a passphrase.</p>
-            <button hlmBtn variant="outline" size="sm" (click)="disableLock()">Disable</button>
+            <button hlmBtn variant="outline" size="sm" (click)="disableLockConfirm.open()">Disable</button>
           </div>
+          <app-confirm-dialog
+            #disableLockConfirm
+            title="Disable the passphrase lock?"
+            description="Anyone with access to this device will be able to open Deckle without entering a passphrase."
+            confirmLabel="Disable"
+            (confirmed)="disableLock()"
+          />
         }
       </section>
 
@@ -114,9 +123,16 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
           </button>
           <label hlmBtn variant="outline" size="sm" class="cursor-pointer">
             Import backup
-            <input type="file" accept="application/json" class="hidden" (change)="importBackup($event)" />
+            <input type="file" accept="application/json" class="hidden" (change)="onImportFileSelected($event)" />
           </label>
         </div>
+        <app-confirm-dialog
+          #importConfirm
+          title="Replace all data with this backup?"
+          description="Importing will replace all current projects, decks, cards, and settings with the contents of this file. This can't be undone."
+          confirmLabel="Import"
+          (confirmed)="confirmImport()"
+        />
       </section>
     </div>
   `,
@@ -126,6 +142,9 @@ export class Settings {
   protected readonly lockService = inject(LockService);
   protected readonly backupService = inject(BackupService);
   private readonly notificationService = inject(NotificationService);
+
+  @ViewChild('importConfirm') private importConfirm?: ConfirmDialog;
+  private pendingImportFile: File | null = null;
 
   protected readonly newPassphrase = signal('');
   protected readonly notificationPermission = signal(this.notificationService.permission);
@@ -161,7 +180,6 @@ export class Settings {
   }
 
   async disableLock(): Promise<void> {
-    if (!confirm('Disable the passphrase lock?')) return;
     await this.lockService.disable();
   }
 
@@ -169,15 +187,18 @@ export class Settings {
     this.backupService.downloadBackup();
   }
 
-  async importBackup(event: Event): Promise<void> {
+  onImportFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) return;
-    if (!confirm('Importing will replace all current data with this backup. Continue?')) {
-      input.value = '';
-      return;
-    }
-    await this.backupService.importAll(file);
     input.value = '';
+    if (!file) return;
+    this.pendingImportFile = file;
+    this.importConfirm?.open();
+  }
+
+  async confirmImport(): Promise<void> {
+    if (!this.pendingImportFile) return;
+    await this.backupService.importAll(this.pendingImportFile);
+    this.pendingImportFile = null;
   }
 }
