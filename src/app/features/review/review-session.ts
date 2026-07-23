@@ -1,22 +1,42 @@
 import { Component, computed, effect, HostListener, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmEmptyImports } from '@spartan-ng/helm/empty';
 import { HlmKbd } from '@spartan-ng/helm/kbd';
+import { HlmProgress, HlmProgressIndicator } from '@spartan-ng/helm/progress';
 import { Rating, type Grade } from 'ts-fsrs';
 import type { Card } from '../../core/models/card.model';
 import { formatInterval } from '../../core/utils/format-interval';
 import { renderCloze } from '../../core/utils/cloze';
-import { FsrsService } from '../../core/services/fsrs.service';
+import { DeckService } from '../../core/services/deck.service';
+import { ProjectService } from '../../core/services/project.service';
 import { ReviewService } from '../../core/services/review.service';
+import { FsrsService } from '../../core/services/fsrs.service';
 import { CardPreview } from '../../shared/components/card-preview';
 
 const SWIPE_THRESHOLD_PX = 60;
 
+interface GradeOption {
+  rating: Grade;
+  label: string;
+  intervalLabel: string;
+  classes: string;
+}
+
 @Component({
   selector: 'app-review-session',
-  imports: [RouterLink, HlmButton, HlmKbd, ...HlmCardImports, ...HlmEmptyImports, CardPreview],
+  imports: [
+    RouterLink,
+    HlmButton,
+    HlmKbd,
+    HlmProgress,
+    HlmProgressIndicator,
+    ...HlmCardImports,
+    ...HlmEmptyImports,
+    CardPreview,
+  ],
   template: `
     <div class="mx-auto flex max-w-xl flex-col gap-4 p-4 md:p-8">
       @if (loading()) {
@@ -24,6 +44,11 @@ const SWIPE_THRESHOLD_PX = 60;
       } @else if (queue().length === 0) {
         <div hlmEmpty>
           <div hlmEmptyHeader>
+            <div hlmEmptyMedia variant="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
             <div hlmEmptyTitle>Nothing due right now</div>
             <div hlmEmptyDescription>Nice work — check back later.</div>
           </div>
@@ -32,7 +57,12 @@ const SWIPE_THRESHOLD_PX = 60;
       } @else if (currentIndex() >= queue().length) {
         <div hlmEmpty>
           <div hlmEmptyHeader>
-            <div hlmEmptyTitle>Session complete 🎉</div>
+            <div hlmEmptyMedia variant="icon" class="bg-success/10 text-success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div hlmEmptyTitle>Session complete</div>
             <div hlmEmptyDescription>
               You reviewed {{ queue().length }} card{{ queue().length === 1 ? '' : 's' }}.
             </div>
@@ -40,18 +70,41 @@ const SWIPE_THRESHOLD_PX = 60;
           <a hlmBtn routerLink="/">Back to dashboard</a>
         </div>
       } @else {
-        <div class="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{{ currentIndex() + 1 }} / {{ queue().length }}</span>
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-sm text-muted-foreground">
+            <span class="font-medium text-foreground">{{ scopeLabel() }}</span>
+            <span>{{ currentIndex() + 1 }} / {{ queue().length }}</span>
+          </div>
+          <div hlmProgress [value]="currentIndex()" [max]="queue().length">
+            <div hlmProgressIndicator></div>
+          </div>
         </div>
 
         <div
           hlmCard
-          class="min-h-64 select-none p-6"
+          class="min-h-64 select-none space-y-4 p-6"
           (click)="onCardClick()"
           (touchstart)="onTouchStart($event)"
           (touchend)="onTouchEnd($event)"
         >
-          <app-card-preview [markdown]="displayText()" />
+          @if (currentCard()?.type === 'cloze') {
+            @if (revealed()) {
+              <div class="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+                <app-card-preview [markdown]="clozeAnswer()" />
+              </div>
+            } @else {
+              <app-card-preview [markdown]="clozeQuestion()" />
+            }
+          } @else {
+            <app-card-preview [markdown]="currentCard()?.front ?? ''" />
+            @if (revealed()) {
+              <div
+                class="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200 space-y-4 border-t border-border pt-4"
+              >
+                <app-card-preview [markdown]="currentCard()?.back ?? ''" />
+              </div>
+            }
+          }
         </div>
 
         @if (!revealed()) {
@@ -61,13 +114,8 @@ const SWIPE_THRESHOLD_PX = 60;
         } @else {
           <div class="grid grid-cols-4 gap-2">
             @for (g of gradePreviews(); track g.rating) {
-              <button
-                hlmBtn
-                [variant]="variantFor(g.rating)"
-                class="flex flex-col gap-0.5 py-2"
-                (click)="grade(g.rating)"
-              >
-                <span>{{ labelFor(g.rating) }}</span>
+              <button hlmBtn class="flex flex-col gap-0.5 py-2 {{ g.classes }}" (click)="grade(g.rating)">
+                <span>{{ g.label }}</span>
                 <span class="text-xs opacity-70">{{ g.intervalLabel }}</span>
               </button>
             }
@@ -83,6 +131,8 @@ const SWIPE_THRESHOLD_PX = 60;
 export class ReviewSession {
   private readonly reviewService = inject(ReviewService);
   private readonly fsrs = inject(FsrsService);
+  private readonly projectService = inject(ProjectService);
+  private readonly deckService = inject(DeckService);
 
   readonly projectId = input<string | undefined>(undefined);
   readonly deckId = input<string | undefined>(undefined);
@@ -99,22 +149,45 @@ export class ReviewSession {
     () => this.queue()[this.currentIndex()],
   );
 
-  protected readonly displayText = computed(() => {
-    const card = this.currentCard();
-    if (!card) return '';
-    if (card.type === 'cloze') {
-      return renderCloze(card.text ?? '', card.clozeIndex ?? 1, this.revealed());
+  protected readonly scopeLabel = computed(() => {
+    const deckId = this.deckId();
+    const projectId = this.projectId();
+    if (deckId) {
+      return this.deckService.decks()?.find((d) => d.id === deckId)?.name ?? 'Deck';
     }
-    if (!this.revealed()) return card.front ?? '';
-    return `${card.front ?? ''}\n\n---\n\n${card.back ?? ''}`;
+    if (projectId) {
+      return this.projectService.projects()?.find((p) => p.id === projectId)?.name ?? 'Project';
+    }
+    return 'All due cards';
   });
 
-  protected readonly gradePreviews = computed(() => {
+  protected readonly clozeQuestion = computed(() => {
+    const card = this.currentCard();
+    if (!card || card.type !== 'cloze') return '';
+    return renderCloze(card.text ?? '', card.clozeIndex ?? 1, false);
+  });
+
+  protected readonly clozeAnswer = computed(() => {
+    const card = this.currentCard();
+    if (!card || card.type !== 'cloze') return '';
+    return renderCloze(card.text ?? '', card.clozeIndex ?? 1, true);
+  });
+
+  private static readonly GRADE_STYLES: Record<Grade, string> = {
+    [Rating.Again]: '!bg-destructive/10 !text-destructive hover:!bg-destructive/20',
+    [Rating.Hard]: '!bg-amber-500/10 !text-amber-700 hover:!bg-amber-500/20 dark:!text-amber-400',
+    [Rating.Good]: '',
+    [Rating.Easy]: '!bg-success/10 !text-success hover:!bg-success/20',
+  };
+
+  protected readonly gradePreviews = computed<GradeOption[]>(() => {
     const card = this.currentCard();
     if (!card || !this.revealed()) return [];
     return this.fsrs.previewGrades(card).map((p) => ({
       rating: p.rating,
+      label: this.labelFor(p.rating),
       intervalLabel: formatInterval(p.due),
+      classes: ReviewSession.GRADE_STYLES[p.rating],
     }));
   });
 
@@ -148,9 +221,22 @@ export class ReviewSession {
   async grade(rating: Grade): Promise<void> {
     const card = this.currentCard();
     if (!card) return;
-    await this.reviewService.gradeCard(card, rating);
+    const index = this.currentIndex();
+    const { undo } = await this.reviewService.gradeCard(card, rating);
+
     this.currentIndex.update((i) => i + 1);
     this.revealed.set(false);
+
+    toast(`Graded "${this.labelFor(rating)}"`, {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          await undo();
+          this.currentIndex.set(index);
+          this.revealed.set(true);
+        },
+      },
+    });
   }
 
   onTouchStart(event: TouchEvent): void {
@@ -197,16 +283,5 @@ export class ReviewSession {
     return { [Rating.Again]: 'Again', [Rating.Hard]: 'Hard', [Rating.Good]: 'Good', [Rating.Easy]: 'Easy' }[
       rating
     ];
-  }
-
-  protected variantFor(rating: Grade): 'destructive' | 'outline' | 'default' | 'secondary' {
-    return (
-      {
-        [Rating.Again]: 'destructive' as const,
-        [Rating.Hard]: 'outline' as const,
-        [Rating.Good]: 'default' as const,
-        [Rating.Easy]: 'secondary' as const,
-      }[rating] ?? 'outline'
-    );
   }
 }

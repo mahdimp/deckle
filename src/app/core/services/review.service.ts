@@ -95,15 +95,18 @@ export class ReviewService {
     return due.sort((a, b) => a.due.getTime() - b.due.getTime());
   }
 
-  async gradeCard(card: Card, rating: Grade): Promise<Card> {
+  /** Grades a card and returns the updated card plus an `undo` to revert the grade (used for the review session's undo toast). */
+  async gradeCard(card: Card, rating: Grade): Promise<{ updated: Card; undo: () => Promise<void> }> {
     const now = new Date();
     const { fields, log } = this.fsrs.schedule(card, rating, now);
     const updated: Card = { ...card, ...fields, updatedAt: now };
+    const previous = card;
+    const logId = newId();
 
     await db.transaction('rw', db.cards, db.reviewLogs, async () => {
       await db.cards.update(card.id, { ...fields, updatedAt: now });
       await db.reviewLogs.add({
-        id: newId(),
+        id: logId,
         cardId: card.id,
         rating,
         state: log.state,
@@ -117,6 +120,13 @@ export class ReviewService {
       });
     });
 
-    return updated;
+    const undo = async () => {
+      await db.transaction('rw', db.cards, db.reviewLogs, async () => {
+        await db.cards.put(previous);
+        await db.reviewLogs.delete(logId);
+      });
+    };
+
+    return { updated, undo };
   }
 }
