@@ -1,10 +1,16 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { LockService } from '../../core/services/lock.service';
 import { ReviewService } from '../../core/services/review.service';
 import { ThemeToggle } from '../components/theme-toggle';
+
+// Routes that already offer their own primary "add/save" action, where the
+// global quick-add FAB would just duplicate it (and visually collide with it).
+const QUICK_ADD_FAB_HIDDEN_PATTERN = /^\/(new$|projects\/.+\/decks\/.+\/(new|notes\/))/;
 
 interface NavItem {
   path: string;
@@ -48,9 +54,27 @@ const NAV_ITEMS: NavItem[] = [
       <!-- Desktop sidebar -->
       <aside class="hidden w-56 shrink-0 border-r border-border p-4 md:flex md:flex-col">
         <div class="mb-6 flex items-center justify-between">
-          <span class="text-lg font-semibold">Deckle</span>
+          <span class="flex items-center gap-2 text-lg font-semibold">
+            <svg viewBox="0 0 24 24" fill="none" class="size-6 shrink-0 text-primary">
+              <rect x="3" y="5" width="14" height="16" rx="2.5" fill="currentColor" opacity="0.18" />
+              <rect x="7" y="2.5" width="14" height="16" rx="2.5" fill="currentColor" />
+            </svg>
+            Deckle
+          </span>
           <app-theme-toggle />
         </div>
+
+        <a
+          hlmBtn
+          routerLink="/new"
+          class="mb-4 justify-start gap-2"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          New card
+        </a>
+
         <nav class="flex flex-1 flex-col gap-1">
           @for (item of navItems; track item.path) {
             <a
@@ -78,6 +102,19 @@ const NAV_ITEMS: NavItem[] = [
       <main class="flex-1 overflow-y-auto pb-20 md:pb-0">
         <router-outlet />
       </main>
+
+      <!-- Mobile quick-add FAB (hidden on routes with their own primary action) -->
+      @if (!hideFab()) {
+        <a
+          routerLink="/new"
+          aria-label="New card"
+          class="fixed right-4 bottom-20 z-20 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </a>
+      }
 
       <!-- Mobile bottom nav -->
       <nav
@@ -108,7 +145,16 @@ const NAV_ITEMS: NavItem[] = [
 export class AppShell {
   protected readonly lockService = inject(LockService);
   private readonly reviewService = inject(ReviewService);
+  private readonly router = inject(Router);
 
   protected readonly navItems = NAV_ITEMS;
   protected readonly totalDue = this.reviewService.totalDue;
+
+  protected readonly hideFab = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => QUICK_ADD_FAB_HIDDEN_PATTERN.test(e.urlAfterRedirects)),
+    ),
+    { initialValue: QUICK_ADD_FAB_HIDDEN_PATTERN.test(this.router.url) },
+  );
 }
