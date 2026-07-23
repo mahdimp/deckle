@@ -6,12 +6,13 @@ import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmEmptyImports } from '@spartan-ng/helm/empty';
+import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { CardService } from '../../core/services/card.service';
 import { DeckService } from '../../core/services/deck.service';
 
 @Component({
   selector: 'app-deck-detail',
-  imports: [RouterLink, HlmBadge, HlmButton, ...HlmCardImports, ...HlmEmptyImports],
+  imports: [RouterLink, HlmBadge, HlmButton, HlmSkeleton, ...HlmCardImports, ...HlmEmptyImports],
   template: `
     <div class="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
       <header class="flex items-center justify-between gap-2">
@@ -34,10 +35,22 @@ import { DeckService } from '../../core/services/deck.service';
       </header>
 
       @if (notes() === undefined) {
-        <p class="text-sm text-muted-foreground">Loading…</p>
+        <div class="space-y-2">
+          <div hlmSkeleton class="h-12 w-full"></div>
+          <div hlmSkeleton class="h-12 w-full"></div>
+        </div>
       } @else if (notes()!.length === 0) {
         <div hlmEmpty>
           <div hlmEmptyHeader>
+            <div hlmEmptyMedia variant="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3M3.75 6h16.5a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5H3.75a1.5 1.5 0 01-1.5-1.5v-9a1.5 1.5 0 011.5-1.5z"
+                />
+              </svg>
+            </div>
             <div hlmEmptyTitle>No cards yet</div>
             <div hlmEmptyDescription>Add your first card above.</div>
           </div>
