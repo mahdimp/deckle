@@ -6,7 +6,7 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmEmptyImports } from '@spartan-ng/helm/empty';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { BackupService } from '../../core/services/backup.service';
-import { ReviewService } from '../../core/services/review.service';
+import { DueCountService } from '../../core/services/due-count.service';
 import { StatsService } from '../../core/services/stats.service';
 
 @Component({
@@ -98,11 +98,11 @@ import { StatsService } from '../../core/services/stats.service';
   `,
 })
 export class Dashboard {
-  protected readonly reviewService = inject(ReviewService);
+  protected readonly dueCountService = inject(DueCountService);
   protected readonly backupService = inject(BackupService);
   private readonly statsService = inject(StatsService);
 
-  protected readonly totalDue = this.reviewService.totalDue;
-  protected readonly dueOverview = this.reviewService.dueOverview;
+  protected readonly totalDue = this.dueCountService.totalDue;
+  protected readonly dueOverview = this.dueCountService.dueOverview;
   protected readonly streakDays = () => this.statsService.stats()?.streakDays;
 }

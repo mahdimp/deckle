@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ReviewService } from './review.service';
+import { DueCountService } from './due-count.service';
 import { SettingsService } from './settings.service';
 
 @Injectable({ providedIn: 'root' })
@@ -8,7 +8,7 @@ export class NotificationService {
 
   constructor(
     private readonly settingsService: SettingsService,
-    private readonly reviewService: ReviewService,
+    private readonly dueCountService: DueCountService,
   ) {}
 
   get permission(): NotificationPermission {
@@ -44,7 +44,7 @@ export class NotificationService {
     reminderMoment.setHours(hours, minutes, 0, 0);
     if (now < reminderMoment) return;
 
-    const due = this.reviewService.totalDue();
+    const due = this.dueCountService.totalDue();
     if (due < settings.reminderThreshold) return;
 
     new Notification('Deckle', {

@@ -5,7 +5,7 @@ import { filter, map } from 'rxjs';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { LockService } from '../../core/services/lock.service';
-import { ReviewService } from '../../core/services/review.service';
+import { DueCountService } from '../../core/services/due-count.service';
 import { ThemeToggle } from '../components/theme-toggle';
 
 // Routes that already offer their own primary "add/save" action, where the
@@ -144,11 +144,11 @@ const NAV_ITEMS: NavItem[] = [
 })
 export class AppShell {
   protected readonly lockService = inject(LockService);
-  private readonly reviewService = inject(ReviewService);
+  private readonly dueCountService = inject(DueCountService);
   private readonly router = inject(Router);
 
   protected readonly navItems = NAV_ITEMS;
-  protected readonly totalDue = this.reviewService.totalDue;
+  protected readonly totalDue = this.dueCountService.totalDue;
 
   protected readonly hideFab = toSignal(
     this.router.events.pipe(
