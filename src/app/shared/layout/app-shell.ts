@@ -6,6 +6,7 @@ import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { LockService } from '../../core/services/lock.service';
 import { DueCountService } from '../../core/services/due-count.service';
+import { InstallBanner } from '../components/install-banner';
 import { ThemeToggle } from '../components/theme-toggle';
 
 // Routes that already offer their own primary "add/save" action, or where quick-adding a
@@ -49,8 +50,9 @@ const NAV_ITEMS: NavItem[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, HlmBadge, HlmButton, ThemeToggle],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, HlmBadge, HlmButton, InstallBanner, ThemeToggle],
   template: `
+    <app-install-banner />
     <div class="flex min-h-dvh flex-col bg-background text-foreground md:flex-row">
       <!-- Desktop sidebar -->
       <aside class="hidden w-56 shrink-0 border-r border-border p-4 md:flex md:flex-col">
