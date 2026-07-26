@@ -72,16 +72,18 @@ type ActiveField = 'front' | 'back' | 'text';
         </div>
       }
 
-      <div class="flex gap-2">
-        <label hlmBtn variant="outline" size="sm" class="cursor-pointer">
-          Add image
-          <input type="file" accept="image/*" class="hidden" (change)="onFile($event, 'image')" />
-        </label>
-        <label hlmBtn variant="outline" size="sm" class="cursor-pointer">
-          Add audio
-          <input type="file" accept="audio/*" class="hidden" (change)="onFile($event, 'audio')" />
-        </label>
-        <p class="self-center text-xs text-muted-foreground">Inserted into the focused field</p>
+      <div class="space-y-1.5">
+        <div class="flex flex-wrap gap-2">
+          <label hlmBtn variant="outline" size="sm" class="cursor-pointer">
+            Add image
+            <input type="file" accept="image/*" class="hidden" (change)="onFile($event, 'image')" />
+          </label>
+          <label hlmBtn variant="outline" size="sm" class="cursor-pointer">
+            Add audio
+            <input type="file" accept="audio/*" class="hidden" (change)="onFile($event, 'audio')" />
+          </label>
+        </div>
+        <p class="text-xs text-muted-foreground">Inserted into the focused field</p>
       </div>
 
       @if (type() === 'basic') {

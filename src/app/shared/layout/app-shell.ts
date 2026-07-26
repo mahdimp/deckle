@@ -8,9 +8,10 @@ import { LockService } from '../../core/services/lock.service';
 import { DueCountService } from '../../core/services/due-count.service';
 import { ThemeToggle } from '../components/theme-toggle';
 
-// Routes that already offer their own primary "add/save" action, where the
-// global quick-add FAB would just duplicate it (and visually collide with it).
-const QUICK_ADD_FAB_HIDDEN_PATTERN = /^\/(new$|projects\/.+\/decks\/.+\/(new|notes\/))/;
+// Routes that already offer their own primary "add/save" action, or where quick-adding a
+// card doesn't fit the task (settings/stats) — the FAB is fixed-position, so on short pages
+// it can otherwise sit on top of in-flow content instead of just duplicating an action.
+const QUICK_ADD_FAB_HIDDEN_PATTERN = /^\/(new$|settings$|stats$|projects\/.+\/decks\/.+\/(new|notes\/))/;
 
 interface NavItem {
   path: string;
