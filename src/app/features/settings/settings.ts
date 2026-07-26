@@ -9,6 +9,7 @@ import { LockService } from '../../core/services/lock.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { StoragePersistenceService } from '../../core/services/storage-persistence.service';
+import { isIos, isStandalone } from '../../core/utils/platform';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
 import { ThemeToggle } from '../../shared/components/theme-toggle';
 
@@ -68,9 +69,17 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
         </div>
 
         @if (notificationPermission() !== 'granted') {
-          <button hlmBtn variant="outline" size="sm" class="self-start" (click)="requestNotifications()">
-            Enable browser notifications
-          </button>
+          @if (iosNeedsInstall) {
+            <p class="text-xs text-muted-foreground">
+              iPhone only allows notifications for installed apps. Tap the Share icon in Safari,
+              then "Add to Home Screen" — open Deckle from that icon and this option will appear
+              here.
+            </p>
+          } @else {
+            <button hlmBtn variant="outline" size="sm" class="self-start" (click)="requestNotifications()">
+              Enable browser notifications
+            </button>
+          }
         } @else {
           <p class="text-xs text-muted-foreground">Browser notifications are enabled.</p>
         }
@@ -170,6 +179,7 @@ export class Settings {
 
   protected readonly newPassphrase = signal('');
   protected readonly notificationPermission = signal(this.notificationService.permission);
+  protected readonly iosNeedsInstall = isIos() && !isStandalone();
 
   protected readonly reminderTime = computed(() => this.settingsService.settings()?.reminderTime ?? '');
   protected readonly reminderThreshold = computed(
