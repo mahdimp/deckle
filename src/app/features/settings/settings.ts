@@ -8,6 +8,7 @@ import { BackupService } from '../../core/services/backup.service';
 import { LockService } from '../../core/services/lock.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { StoragePersistenceService } from '../../core/services/storage-persistence.service';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
 import { ThemeToggle } from '../../shared/components/theme-toggle';
 
@@ -108,6 +109,26 @@ import { ThemeToggle } from '../../shared/components/theme-toggle';
         }
       </section>
 
+      @if (storagePersistence.supported) {
+        <section hlmCard class="space-y-3 p-4">
+          <h2 class="text-sm font-semibold text-muted-foreground">Storage</h2>
+          @if (storagePersistence.persisted()) {
+            <p class="text-xs text-muted-foreground">
+              Persistent storage is enabled — the browser won't automatically clear your data
+              under storage pressure.
+            </p>
+          } @else {
+            <p class="text-xs text-muted-foreground">
+              Without persistent storage, the browser can silently clear your decks and review
+              history if it needs to free up space.
+            </p>
+            <button hlmBtn variant="outline" size="sm" class="self-start" (click)="requestPersistentStorage()">
+              Enable persistent storage
+            </button>
+          }
+        </section>
+      }
+
       <section hlmCard class="space-y-3 p-4">
         <h2 class="text-sm font-semibold text-muted-foreground">Backup</h2>
         <p class="text-xs text-muted-foreground">
@@ -141,6 +162,7 @@ export class Settings {
   protected readonly settingsService = inject(SettingsService);
   protected readonly lockService = inject(LockService);
   protected readonly backupService = inject(BackupService);
+  protected readonly storagePersistence = inject(StoragePersistenceService);
   private readonly notificationService = inject(NotificationService);
 
   @ViewChild('importConfirm') private importConfirm?: ConfirmDialog;
@@ -169,6 +191,10 @@ export class Settings {
   async requestNotifications(): Promise<void> {
     const permission = await this.notificationService.requestPermission();
     this.notificationPermission.set(permission);
+  }
+
+  async requestPersistentStorage(): Promise<void> {
+    await this.storagePersistence.request();
   }
 
   async enableLock(event: Event): Promise<void> {
